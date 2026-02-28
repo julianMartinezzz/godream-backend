@@ -16,6 +16,7 @@ import Footer from './components/public/Footer.jsx';
 // Vistas de Administración
 import Admin from './pages/Admin.jsx';
 import Equipo from './components/admin/Equipo.jsx';
+import Liquidacion from './components/admin/Liquidacion.jsx'; // <--- IMPORTACIÓN NUEVA
 
 function App() {
     const [planSeleccionado, setPlanSeleccionado] = useState("");
@@ -49,11 +50,17 @@ function App() {
                 <Route path="/admin" element={<Admin />} />
                 <Route path="/admin/equipo" element={<Equipo />} />
 
+                {/* NUEVA RUTA DE LIQUIDACIÓN Y PAGOS */}
+                <Route path="/admin/liquidacion" element={<Liquidacion />} />
+
                 {/* MANEJO DE ERRORES 404 */}
                 <Route path="*" element={
                     <div className="flex flex-col items-center justify-center min-h-screen">
-                        <h1 className="text-4xl font-black">404 - No encontrado</h1>
-                        <a href="/" className="text-orange-500 underline mt-4">Volver al inicio</a>
+                        <h1 className="text-4xl font-black text-slate-900">404 - No encontrado</h1>
+                        <p className="text-slate-500 mt-2 font-medium">La página que buscas no existe o ha sido movida.</p>
+                        <a href="/" className="bg-orange-500 text-white px-6 py-3 rounded-2xl font-black mt-6 hover:bg-slate-900 transition-all">
+                            VOLVER AL INICIO
+                        </a>
                     </div>
                 } />
             </Routes>

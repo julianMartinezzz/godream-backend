@@ -1,54 +1,69 @@
 import React from 'react';
-import { Link, useLocation } from 'react-router-dom';
-import { Users, LayoutDashboard, UserCircle, LogOut, TrendingUp } from 'lucide-react';
+import { Link, useLocation, useNavigate } from 'react-router-dom'; // Añadimos useNavigate
+import {
+    LayoutDashboard,
+    Users,
+    Wallet,
+    LogOut,
+    BarChart3
+} from 'lucide-react';
 
 const Sidebar = () => {
     const location = useLocation();
+    const navigate = useNavigate(); // Inicializamos el navegador
 
     const menuItems = [
-        { path: '/admin', icon: <LayoutDashboard />, label: 'Leads (Prospectos)' },
-        { path: '/admin/equipo', icon: <Users />, label: 'Mi Equipo' },
+        { icon: <LayoutDashboard size={22} />, label: 'Gestión Leads', path: '/admin' },
+        { icon: <Users size={22} />, label: 'Mi Equipo', path: '/admin/equipo' },
+        { icon: <Wallet size={22} />, label: 'Liquidación', path: '/admin/liquidacion' },
     ];
 
+    const handleLogout = () => {
+        // Aquí podrías limpiar tokens de sesión si los tuvieras más adelante
+        navigate('/'); // Nos manda a la página principal
+    };
+
     return (
-        <div className="fixed left-0 top-0 h-screen w-64 bg-slate-900 text-white p-6 flex flex-col z-50">
-            <div className="flex items-center gap-3 mb-12 px-2">
-                <div className="w-10 h-10 bg-godream-orange rounded-xl flex items-center justify-center font-black">GD</div>
-                <span className="text-xl font-black tracking-tight">GoDream <span className="text-godream-orange text-xs block">PRO PANEL</span></span>
+        <aside className="fixed left-0 top-0 h-full w-64 bg-slate-900 text-white p-6 flex flex-col z-40">
+            <div className="mb-12 px-4 flex items-center gap-3">
+                <div className="w-10 h-10 bg-orange-500 rounded-2xl flex items-center justify-center shadow-lg shadow-orange-900/20">
+                    <BarChart3 className="text-white" size={24} />
+                </div>
+                <h2 className="text-xl font-black tracking-tighter uppercase italic">GoDream</h2>
             </div>
 
             <nav className="flex-1 space-y-2">
-                {menuItems.map((item) => (
-                    <Link
-                        key={item.path}
-                        to={item.path}
-                        className={`flex items-center gap-3 px-4 py-3 rounded-2xl transition-all font-bold ${
-                            location.pathname === item.path
-                                ? 'bg-godream-orange text-white shadow-lg shadow-orange-900/20'
-                                : 'text-slate-400 hover:bg-slate-800 hover:text-white'
-                        }`}
-                    >
-                        {item.icon}
-                        {item.label}
-                    </Link>
-                ))}
+                <p className="text-[10px] font-black text-slate-500 uppercase tracking-widest mb-4 ml-4">Menú Principal</p>
+                {menuItems.map((item) => {
+                    const isActive = location.pathname === item.path;
+                    return (
+                        <Link
+                            key={item.path}
+                            to={item.path}
+                            className={`flex items-center gap-4 px-6 py-4 rounded-[24px] font-bold transition-all duration-300 ${
+                                isActive
+                                    ? 'bg-orange-500 text-white shadow-lg shadow-orange-500/20 translate-x-2'
+                                    : 'text-slate-400 hover:bg-slate-800 hover:text-white'
+                            }`}
+                        >
+                            {item.icon}
+                            <span className="text-sm">{item.label}</span>
+                        </Link>
+                    );
+                })}
             </nav>
 
-            <div className="pt-6 border-t border-slate-800 space-y-4">
-                <div className="flex items-center gap-3 px-2">
-                    <div className="w-8 h-8 bg-slate-700 rounded-full flex items-center justify-center">
-                        <UserCircle className="w-5 h-5 text-slate-300" />
-                    </div>
-                    <div className="text-xs">
-                        <p className="font-bold text-slate-200">Administrador</p>
-                        <p className="text-slate-500 italic">Jefe de Ventas</p>
-                    </div>
-                </div>
-                <Link to="/" className="flex items-center gap-3 px-4 py-3 text-red-400 font-bold hover:bg-red-500/10 rounded-2xl transition-all">
-                    <LogOut className="w-5 h-5" /> Salir
-                </Link>
+            <div className="mt-auto pt-6 border-t border-slate-800">
+                {/* Añadimos el onClick al botón */}
+                <button
+                    onClick={handleLogout}
+                    className="flex items-center gap-4 px-6 py-4 rounded-[24px] text-slate-500 font-bold hover:bg-red-500/10 hover:text-red-500 transition-all w-full group"
+                >
+                    <LogOut size={22} className="group-hover:-translate-x-1 transition-transform" />
+                    <span className="text-sm">Cerrar Sesión</span>
+                </button>
             </div>
-        </div>
+        </aside>
     );
 };
 
