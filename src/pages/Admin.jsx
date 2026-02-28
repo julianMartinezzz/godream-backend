@@ -1,11 +1,10 @@
 import React, { useEffect, useState } from 'react';
-import { Users, RefreshCw, Search, CheckCircle2, Clock, Trash2, X, Save, FileDown } from 'lucide-react';
-import * as XLSX from 'xlsx';
+import { Users, RefreshCw, Search, Trash2, X, Save, UserCheck } from 'lucide-react';
 import Sidebar from '../components/admin/Sidebar';
-import Stats from '../components/admin/Stats';
 
 const Admin = () => {
     const [leads, setLeads] = useState([]);
+    const [asesores, setAsesores] = useState([]);
     const [filteredLeads, setFilteredLeads] = useState([]);
     const [loading, setLoading] = useState(true);
     const [searchTerm, setSearchTerm] = useState('');
@@ -13,115 +12,132 @@ const Admin = () => {
 
     const [leadSeleccionado, setLeadSeleccionado] = useState(null);
     const [notaTemporal, setNotaTemporal] = useState('');
+    const [guardandoNota, setGuardandoNota] = useState(false);
 
-    const fetchLeads = async () => {
+    // 1. Cargar Leads y Asesores desde el servidor
+    const fetchData = async () => {
         setLoading(true);
         try {
-            const response = await fetch('http://localhost:8080/api/leads');
-            const data = await response.json();
-            const sortedData = [...data].reverse();
-            setLeads(sortedData);
+            const [resLeads, resAsesores] = await Promise.all([
+                fetch('http://localhost:8080/api/leads'),
+                fetch('http://localhost:8080/api/asesores')
+            ]);
+            const dataLeads = await resLeads.json();
+            const dataAsesores = await resAsesores.json();
+
+            setLeads([...dataLeads].reverse());
+            setAsesores(dataAsesores);
         } catch (error) {
-            console.error("Error cargando leads:", error);
+            console.error("Error cargando datos:", error);
         } finally {
             setLoading(false);
         }
     };
 
-    useEffect(() => { fetchLeads(); }, []);
+    useEffect(() => { fetchData(); }, []);
 
+    // 2. Lógica de búsqueda y filtrado
     useEffect(() => {
         let results = leads.filter(lead =>
             lead.nombre.toLowerCase().includes(searchTerm.toLowerCase()) ||
             lead.telefono.includes(searchTerm)
         );
         if (filtroPlan !== 'Todos') {
-            results = results.filter(lead => lead.plan.includes(filtroPlan));
+            results = results.filter(lead => lead.plan?.includes(filtroPlan));
         }
         setFilteredLeads(results);
     }, [searchTerm, leads, filtroPlan]);
 
-    const eliminarLead = async (id) => {
-        if (!window.confirm("¿Estás seguro de eliminar este lead?")) return;
+    // 3. Función para asignar asesor
+    const asignarAsesor = async (leadId, asesorId) => {
+        if (!asesorId) return;
         try {
-            const response = await fetch(`http://localhost:8080/api/leads/${id}`, { method: 'DELETE' });
+            const response = await fetch(`http://localhost:8080/api/leads/${leadId}/asignar`, {
+                method: 'PATCH',
+                headers: { 'Content-Type': 'application/json' },
+                body: JSON.stringify({ asesorId: parseInt(asesorId) })
+            });
             if (response.ok) {
-                setLeads(leads.filter(lead => lead.id !== id));
-                if (leadSeleccionado?.id === id) setLeadSeleccionado(null);
+                const leadActualizado = await response.json();
+                setLeads(leads.map(l => l.id === leadId ? leadActualizado : l));
             }
         } catch (error) {
-            alert("Error al eliminar.");
+            alert("Error al asignar asesor");
         }
     };
 
+    // 4. Función para guardar notas permanentemente
     const guardarNotas = async () => {
+        if (!leadSeleccionado) return;
+        setGuardandoNota(true);
         try {
-            const response = await fetch(`http://localhost:8080/api/leads/${leadSeleccionado.id}/notas`, {
+            const res = await fetch(`http://localhost:8080/api/leads/${leadSeleccionado.id}/notas`, {
                 method: 'PATCH',
                 headers: { 'Content-Type': 'application/json' },
                 body: JSON.stringify({ notas: notaTemporal })
             });
-            if (response.ok) {
-                setLeads(leads.map(l => l.id === leadSeleccionado.id ? { ...l, notas: notaTemporal } : l));
-                alert("Nota guardada correctamente");
+            if (res.ok) {
+                const leadActualizado = await res.json();
+                // Actualizamos la lista local
+                setLeads(leads.map(l => l.id === leadSeleccionado.id ? leadActualizado : l));
+                // Actualizamos el panel lateral
+                setLeadSeleccionado(leadActualizado);
+                alert("Notas guardadas con éxito");
             }
         } catch (error) {
-            alert("Error al guardar nota.");
+            alert("Error al conectar con el servidor");
+        } finally {
+            setGuardandoNota(false);
         }
     };
 
-    const exportarExcel = () => {
-        const worksheet = XLSX.utils.json_to_sheet(filteredLeads);
-        const workbook = XLSX.utils.book_new();
-        XLSX.utils.book_append_sheet(workbook, worksheet, "Leads");
-        XLSX.writeFile(workbook, "Leads_GoDream.xlsx");
+    const eliminarLead = async (id) => {
+        if (!window.confirm("¿Eliminar este lead definitivamente?")) return;
+        try {
+            const res = await fetch(`http://localhost:8080/api/leads/${id}`, { method: 'DELETE' });
+            if (res.ok) setLeads(leads.filter(l => l.id !== id));
+        } catch (error) { alert("Error al eliminar"); }
     };
 
     const toggleEstado = async (id, estadoActual) => {
         const nuevoEstado = estadoActual === 'CONTESTADO' ? 'NUEVO' : 'CONTESTADO';
         try {
-            const response = await fetch(`http://localhost:8080/api/leads/${id}/estado`, {
+            const res = await fetch(`http://localhost:8080/api/leads/${id}/estado`, {
                 method: 'PATCH',
                 headers: { 'Content-Type': 'application/json' },
                 body: JSON.stringify({ estado: nuevoEstado })
             });
-            if (response.ok) {
-                setLeads(leads.map(lead => lead.id === id ? { ...lead, estado: nuevoEstado } : lead));
+            if (res.ok) {
+                const leadActualizado = await res.json();
+                setLeads(leads.map(l => l.id === id ? leadActualizado : l));
             }
-        } catch (error) {
-            alert("Error al cambiar estado.");
-        }
+        } catch (error) { alert("Error al cambiar estado"); }
     };
 
     return (
         <div className="flex min-h-screen bg-[#F8FAFC]">
             <Sidebar />
 
-            <main className={`flex-1 ml-64 p-10 transition-all duration-500 ${leadSeleccionado ? 'pr-[420px] opacity-50 pointer-events-none' : ''}`}>
+            <main className={`flex-1 ml-64 p-10 transition-all ${leadSeleccionado ? 'pr-96 opacity-40' : ''}`}>
                 <div className="max-w-7xl mx-auto">
-                    <Stats />
 
-                    <div className="flex flex-col md:flex-row justify-between items-center my-10 gap-6">
+                    {/* Header */}
+                    <div className="flex flex-col md:flex-row justify-between items-center mb-10 gap-6">
                         <div className="flex items-center gap-4">
-                            <div className="p-4 bg-godream-orange rounded-3xl shadow-lg shadow-orange-200">
-                                <Users className="text-white w-8 h-8" />
-                            </div>
+                            <div className="p-4 bg-slate-900 rounded-3xl text-white shadow-xl"><Users /></div>
                             <div>
-                                <h1 className="text-3xl font-black text-slate-900">Panel de Leads</h1>
-                                <p className="text-slate-500 font-medium">Gestión de prospectos entrantes</p>
+                                <h1 className="text-3xl font-black text-slate-900">Gestión de Leads</h1>
+                                <p className="text-slate-500 font-medium">Panel de control comercial</p>
                             </div>
                         </div>
 
-                        <div className="flex items-center gap-3 w-full md:w-auto">
-                            <button onClick={exportarExcel} className="p-4 bg-green-600 text-white rounded-2xl hover:bg-green-700 transition-all shadow-md">
-                                <FileDown className="w-5 h-5" />
-                            </button>
-                            <div className="relative flex-1">
+                        <div className="flex gap-3">
+                            <div className="relative">
                                 <Search className="absolute left-4 top-1/2 -translate-y-1/2 text-slate-400 w-5 h-5" />
                                 <input
                                     type="text"
-                                    placeholder="Buscar cliente..."
-                                    className="w-full pl-12 pr-4 py-4 bg-white rounded-2xl outline-none shadow-sm"
+                                    placeholder="Buscar cliente o teléfono..."
+                                    className="pl-12 pr-4 py-4 bg-white rounded-2xl outline-none shadow-sm w-80 border border-transparent focus:border-orange-500 transition-all"
                                     value={searchTerm}
                                     onChange={(e) => setSearchTerm(e.target.value)}
                                 />
@@ -129,40 +145,57 @@ const Admin = () => {
                         </div>
                     </div>
 
+                    {/* Tabla */}
                     <div className="bg-white rounded-[40px] shadow-xl overflow-hidden border border-slate-100">
                         <table className="w-full text-left">
                             <thead className="bg-slate-900 text-slate-400 text-[11px] uppercase tracking-widest font-black">
                             <tr>
-                                <th className="p-8">Estado</th>
-                                <th className="p-8">Cliente</th>
-                                <th className="p-8">Plan</th>
-                                <th className="p-8 text-center">Acciones</th>
+                                <th className="p-8 text-white">Cliente</th>
+                                <th className="p-8 text-white">Asignar Asesor</th>
+                                <th className="p-8 text-white">Estado</th>
+                                <th className="p-8 text-center text-white">Acciones</th>
                             </tr>
                             </thead>
                             <tbody className="divide-y divide-slate-50">
                             {filteredLeads.map((lead) => (
-                                <tr key={lead.id} className="hover:bg-slate-50 transition-colors cursor-pointer" onClick={() => { setLeadSeleccionado(lead); setNotaTemporal(lead.notas || ''); }}>
+                                <tr
+                                    key={lead.id}
+                                    className="hover:bg-slate-50 transition-colors cursor-pointer group"
+                                    onClick={() => {
+                                        setLeadSeleccionado(lead);
+                                        setNotaTemporal(lead.notas || '');
+                                    }}
+                                >
                                     <td className="p-8">
-                                        <div className={`flex items-center gap-2 px-4 py-2 rounded-full font-black text-[10px] w-fit ${lead.estado === 'CONTESTADO' ? 'bg-green-100 text-green-700' : 'bg-orange-100 text-orange-700'}`}>
-                                            {lead.estado === 'CONTESTADO' ? <CheckCircle2 className="w-4 h-4" /> : <Clock className="w-4 h-4" />}
+                                        <div className="font-black text-slate-900">{lead.nombre}</div>
+                                        <div className="text-slate-400 text-xs">{lead.plan || 'Sin plan'}</div>
+                                    </td>
+
+                                    <td className="p-8" onClick={(e) => e.stopPropagation()}>
+                                        <div className="flex items-center gap-2">
+                                            <UserCheck className={`w-4 h-4 ${lead.asesor ? 'text-orange-500' : 'text-slate-300'}`} />
+                                            <select
+                                                className="bg-slate-100 border-none rounded-xl px-3 py-2 text-xs font-bold text-slate-700 outline-none focus:ring-2 focus:ring-orange-500"
+                                                value={lead.asesor?.id || ""}
+                                                onChange={(e) => asignarAsesor(lead.id, e.target.value)}
+                                            >
+                                                <option value="">Sin asignar</option>
+                                                {asesores.map(as => (
+                                                    <option key={as.id} value={as.id}>{as.nombre}</option>
+                                                ))}
+                                            </select>
+                                        </div>
+                                    </td>
+
+                                    <td className="p-8">
+                                        <div className={`flex items-center gap-2 px-3 py-1.5 rounded-full font-black text-[10px] w-fit ${lead.estado === 'CONTESTADO' ? 'bg-green-100 text-green-700' : 'bg-orange-100 text-orange-700'}`}>
                                             {lead.estado}
                                         </div>
                                     </td>
-                                    <td className="p-8">
-                                        <div className="font-black text-slate-900">{lead.nombre}</div>
-                                        <div className="text-slate-400 text-sm">{lead.telefono}</div>
-                                    </td>
-                                    <td className="p-8">
-                                        <div className="font-bold text-slate-700">{lead.plan}</div>
-                                        <span className="text-[10px] bg-slate-100 px-2 py-0.5 rounded font-black text-slate-500">ESTRATO {lead.estrato}</span>
-                                    </td>
-                                    <td className="p-8 flex justify-center gap-3" onClick={(e) => e.stopPropagation()}>
-                                        <button onClick={() => toggleEstado(lead.id, lead.estado)} className="p-3 bg-white border rounded-xl hover:border-orange-500 transition-all text-slate-400 hover:text-orange-500">
-                                            <RefreshCw className="w-5 h-5" />
-                                        </button>
-                                        <button onClick={() => eliminarLead(lead.id)} className="p-3 bg-red-50 text-red-500 rounded-xl hover:bg-red-500 hover:text-white transition-all">
-                                            <Trash2 className="w-5 h-5" />
-                                        </button>
+
+                                    <td className="p-8 flex justify-center gap-2" onClick={(e) => e.stopPropagation()}>
+                                        <button onClick={() => toggleEstado(lead.id, lead.estado)} className="p-2 bg-white border rounded-lg hover:bg-orange-50 text-slate-600 hover:text-orange-600 transition-colors shadow-sm"><RefreshCw size={16}/></button>
+                                        <button onClick={() => eliminarLead(lead.id)} className="p-2 bg-red-50 text-red-500 rounded-lg hover:bg-red-500 hover:text-white transition-colors"><Trash2 size={16}/></button>
                                     </td>
                                 </tr>
                             ))}
@@ -172,28 +205,49 @@ const Admin = () => {
                 </div>
             </main>
 
-            {/* PANEL DE NOTAS */}
-            <div className={`fixed top-0 right-0 h-full w-96 bg-white shadow-2xl z-50 transform transition-transform duration-500 ${leadSeleccionado ? 'translate-x-0' : 'translate-x-full'}`}>
+            {/* PANEL LATERAL DE DETALLES Y NOTAS */}
+            <div className={`fixed top-0 right-0 h-full w-96 bg-white shadow-2xl z-50 transform transition-transform duration-500 ease-in-out ${leadSeleccionado ? 'translate-x-0' : 'translate-x-full'}`}>
                 {leadSeleccionado && (
                     <div className="p-8 h-full flex flex-col">
-                        <div className="flex justify-between mb-8">
-                            <h2 className="text-2xl font-black">{leadSeleccionado.nombre}</h2>
-                            <button onClick={() => setLeadSeleccionado(null)} className="p-2 bg-slate-100 rounded-full"><X /></button>
-                        </div>
-                        <div className="flex-1 space-y-6">
-                            <div className="bg-orange-50 p-6 rounded-3xl border border-orange-100 text-sm space-y-2">
-                                <p><strong>Email:</strong> {leadSeleccionado.email}</p>
-                                <p><strong>Plan:</strong> {leadSeleccionado.plan}</p>
+                        <div className="flex justify-between items-center mb-8">
+                            <div>
+                                <h2 className="text-2xl font-black text-slate-900 leading-tight">{leadSeleccionado.nombre}</h2>
+                                <span className="text-xs font-bold text-orange-500 uppercase tracking-widest">Detalles del Lead</span>
                             </div>
+                            <button onClick={() => setLeadSeleccionado(null)} className="p-2 bg-slate-100 hover:bg-slate-200 rounded-full transition-colors text-slate-600"><X /></button>
+                        </div>
+
+                        <div className="bg-slate-50 p-6 rounded-[32px] mb-6 text-sm border border-slate-100 shadow-inner">
+                            <div className="space-y-3">
+                                <p className="text-slate-600 flex justify-between"><strong>📞 Teléfono:</strong> {leadSeleccionado.telefono}</p>
+                                <p className="text-slate-600 flex justify-between"><strong>📧 Email:</strong> {leadSeleccionado.email}</p>
+                                <p className="text-slate-600 flex justify-between"><strong>🏷️ Plan:</strong> {leadSeleccionado.plan}</p>
+                                <p className="text-slate-600 flex justify-between"><strong>🏠 Estrato:</strong> {leadSeleccionado.estrato}</p>
+                            </div>
+                            <hr className="my-5 border-slate-200" />
+                            <div className="text-center">
+                                <p className="text-[10px] text-slate-400 font-bold uppercase tracking-widest mb-1">Asesor Responsable</p>
+                                <p className="text-slate-900 font-black text-lg">{leadSeleccionado.asesor?.nombre || "Nadie asignado"}</p>
+                            </div>
+                        </div>
+
+                        <div className="flex-1 flex flex-col">
+                            <label className="text-xs font-black text-slate-400 uppercase tracking-widest mb-3 ml-2">Bitácora de Seguimiento</label>
                             <textarea
-                                className="w-full h-64 p-4 bg-slate-50 rounded-3xl outline-none focus:ring-2 focus:ring-orange-200 resize-none"
-                                placeholder="Notas de seguimiento..."
+                                className="flex-1 w-full p-6 bg-slate-50 rounded-[32px] outline-none border-2 border-transparent focus:border-orange-200 focus:bg-white transition-all resize-none text-slate-700 font-medium leading-relaxed"
+                                placeholder="Escribe aquí los avances de la llamada o el estado del cierre..."
                                 value={notaTemporal}
                                 onChange={(e) => setNotaTemporal(e.target.value)}
                             />
                         </div>
-                        <button onClick={guardarNotas} className="mt-6 w-full bg-godream-orange text-white py-4 rounded-2xl font-black flex items-center justify-center gap-2">
-                            <Save /> GUARDAR NOTAS
+
+                        <button
+                            onClick={guardarNotas}
+                            disabled={guardandoNota}
+                            className={`mt-6 w-full py-5 rounded-[24px] font-black flex items-center justify-center gap-2 shadow-lg shadow-orange-200 transition-all ${guardandoNota ? 'bg-slate-400' : 'bg-orange-500 hover:bg-slate-900 text-white active:scale-95'}`}
+                        >
+                            {guardandoNota ? <RefreshCw className="animate-spin" /> : <Save />}
+                            {guardandoNota ? "GUARDANDO..." : "GUARDAR NOTAS"}
                         </button>
                     </div>
                 )}
