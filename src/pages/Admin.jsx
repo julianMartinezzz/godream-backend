@@ -14,7 +14,15 @@ const Admin = () => {
     const [notaTemporal, setNotaTemporal] = useState('');
     const [guardandoNota, setGuardandoNota] = useState(false);
 
-    // 1. Cargar Leads y Asesores desde el servidor
+    // Definición de estados para el flujo completo
+    const ESTADOS = [
+        { id: 'NUEVO', label: 'Nuevo', color: 'bg-blue-100 text-blue-700' },
+        { id: 'CONTESTADO', label: 'Contestado', color: 'bg-purple-100 text-purple-700' },
+        { id: 'PENDIENTE_INSTALACION', label: 'Pendiente Inst.', color: 'bg-orange-100 text-orange-700' },
+        { id: 'INSTALADA', label: 'Instalada ✅', color: 'bg-green-100 text-green-700' },
+        { id: 'CANCELADA', label: 'Cancelada ❌', color: 'bg-red-100 text-red-700' }
+    ];
+
     const fetchData = async () => {
         setLoading(true);
         try {
@@ -36,7 +44,6 @@ const Admin = () => {
 
     useEffect(() => { fetchData(); }, []);
 
-    // 2. Lógica de búsqueda y filtrado
     useEffect(() => {
         let results = leads.filter(lead =>
             lead.nombre.toLowerCase().includes(searchTerm.toLowerCase()) ||
@@ -48,7 +55,6 @@ const Admin = () => {
         setFilteredLeads(results);
     }, [searchTerm, leads, filtroPlan]);
 
-    // 3. Función para asignar asesor
     const asignarAsesor = async (leadId, asesorId) => {
         if (!asesorId) return;
         try {
@@ -66,7 +72,6 @@ const Admin = () => {
         }
     };
 
-    // 4. Función para guardar notas permanentemente
     const guardarNotas = async () => {
         if (!leadSeleccionado) return;
         setGuardandoNota(true);
@@ -78,9 +83,7 @@ const Admin = () => {
             });
             if (res.ok) {
                 const leadActualizado = await res.json();
-                // Actualizamos la lista local
                 setLeads(leads.map(l => l.id === leadSeleccionado.id ? leadActualizado : l));
-                // Actualizamos el panel lateral
                 setLeadSeleccionado(leadActualizado);
                 alert("Notas guardadas con éxito");
             }
@@ -99,8 +102,8 @@ const Admin = () => {
         } catch (error) { alert("Error al eliminar"); }
     };
 
-    const toggleEstado = async (id, estadoActual) => {
-        const nuevoEstado = estadoActual === 'CONTESTADO' ? 'NUEVO' : 'CONTESTADO';
+    // Nueva función para cambiar a cualquier estado
+    const cambiarEstado = async (id, nuevoEstado) => {
         try {
             const res = await fetch(`http://localhost:8080/api/leads/${id}/estado`, {
                 method: 'PATCH',
@@ -127,7 +130,7 @@ const Admin = () => {
                             <div className="p-4 bg-slate-900 rounded-3xl text-white shadow-xl"><Users /></div>
                             <div>
                                 <h1 className="text-3xl font-black text-slate-900">Gestión de Leads</h1>
-                                <p className="text-slate-500 font-medium">Panel de control comercial</p>
+                                <p className="text-slate-500 font-medium">Control de Instalaciones y Pagos</p>
                             </div>
                         </div>
 
@@ -136,7 +139,7 @@ const Admin = () => {
                                 <Search className="absolute left-4 top-1/2 -translate-y-1/2 text-slate-400 w-5 h-5" />
                                 <input
                                     type="text"
-                                    placeholder="Buscar cliente o teléfono..."
+                                    placeholder="Buscar cliente..."
                                     className="pl-12 pr-4 py-4 bg-white rounded-2xl outline-none shadow-sm w-80 border border-transparent focus:border-orange-500 transition-all"
                                     value={searchTerm}
                                     onChange={(e) => setSearchTerm(e.target.value)}
@@ -150,9 +153,9 @@ const Admin = () => {
                         <table className="w-full text-left">
                             <thead className="bg-slate-900 text-slate-400 text-[11px] uppercase tracking-widest font-black">
                             <tr>
-                                <th className="p-8 text-white">Cliente</th>
+                                <th className="p-8 text-white">Cliente / Plan</th>
                                 <th className="p-8 text-white">Asignar Asesor</th>
-                                <th className="p-8 text-white">Estado</th>
+                                <th className="p-8 text-white">Estado de Venta</th>
                                 <th className="p-8 text-center text-white">Acciones</th>
                             </tr>
                             </thead>
@@ -168,7 +171,7 @@ const Admin = () => {
                                 >
                                     <td className="p-8">
                                         <div className="font-black text-slate-900">{lead.nombre}</div>
-                                        <div className="text-slate-400 text-xs">{lead.plan || 'Sin plan'}</div>
+                                        <div className="text-orange-500 text-xs font-bold">{lead.plan || 'Sin plan'}</div>
                                     </td>
 
                                     <td className="p-8" onClick={(e) => e.stopPropagation()}>
@@ -187,14 +190,19 @@ const Admin = () => {
                                         </div>
                                     </td>
 
-                                    <td className="p-8">
-                                        <div className={`flex items-center gap-2 px-3 py-1.5 rounded-full font-black text-[10px] w-fit ${lead.estado === 'CONTESTADO' ? 'bg-green-100 text-green-700' : 'bg-orange-100 text-orange-700'}`}>
-                                            {lead.estado}
-                                        </div>
+                                    <td className="p-8" onClick={(e) => e.stopPropagation()}>
+                                        <select
+                                            className={`px-3 py-2 rounded-xl font-black text-[10px] uppercase outline-none border-none ${ESTADOS.find(e => e.id === lead.estado)?.color || 'bg-slate-100 text-slate-700'}`}
+                                            value={lead.estado}
+                                            onChange={(e) => cambiarEstado(lead.id, e.target.value)}
+                                        >
+                                            {ESTADOS.map(est => (
+                                                <option key={est.id} value={est.id} className="bg-white text-slate-900 font-sans">{est.label}</option>
+                                            ))}
+                                        </select>
                                     </td>
 
                                     <td className="p-8 flex justify-center gap-2" onClick={(e) => e.stopPropagation()}>
-                                        <button onClick={() => toggleEstado(lead.id, lead.estado)} className="p-2 bg-white border rounded-lg hover:bg-orange-50 text-slate-600 hover:text-orange-600 transition-colors shadow-sm"><RefreshCw size={16}/></button>
                                         <button onClick={() => eliminarLead(lead.id)} className="p-2 bg-red-50 text-red-500 rounded-lg hover:bg-red-500 hover:text-white transition-colors"><Trash2 size={16}/></button>
                                     </td>
                                 </tr>
@@ -205,7 +213,7 @@ const Admin = () => {
                 </div>
             </main>
 
-            {/* PANEL LATERAL DE DETALLES Y NOTAS */}
+            {/* PANEL LATERAL (DISEÑO ORIGINAL) */}
             <div className={`fixed top-0 right-0 h-full w-96 bg-white shadow-2xl z-50 transform transition-transform duration-500 ease-in-out ${leadSeleccionado ? 'translate-x-0' : 'translate-x-full'}`}>
                 {leadSeleccionado && (
                     <div className="p-8 h-full flex flex-col">
@@ -235,7 +243,7 @@ const Admin = () => {
                             <label className="text-xs font-black text-slate-400 uppercase tracking-widest mb-3 ml-2">Bitácora de Seguimiento</label>
                             <textarea
                                 className="flex-1 w-full p-6 bg-slate-50 rounded-[32px] outline-none border-2 border-transparent focus:border-orange-200 focus:bg-white transition-all resize-none text-slate-700 font-medium leading-relaxed"
-                                placeholder="Escribe aquí los avances de la llamada o el estado del cierre..."
+                                placeholder="Escribe aquí los avances de la llamada..."
                                 value={notaTemporal}
                                 onChange={(e) => setNotaTemporal(e.target.value)}
                             />

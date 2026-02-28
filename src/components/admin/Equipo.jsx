@@ -38,7 +38,7 @@ const Equipo = () => {
         if (!leads || !asesorId) return { total: 0, ventas: 0 };
 
         const asignados = leads.filter(l => l.asesor?.id === asesorId);
-        const ventas = asignados.filter(l => l.estado === 'CONTESTADO').length;
+        const ventas = asignados.filter(l => l.estado === 'APROBADA').length;
         return { total: asignados.length, ventas };
     };
 
