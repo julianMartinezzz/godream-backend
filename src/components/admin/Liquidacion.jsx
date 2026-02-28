@@ -1,5 +1,6 @@
+import * as XLSX from 'xlsx';
 import React, { useEffect, useState } from 'react';
-import { DollarSign, CheckCircle, Clock, XCircle, Wallet, Calendar } from 'lucide-react';
+import { DollarSign, CheckCircle, Clock, XCircle, Wallet, Calendar, FileSpreadsheet } from 'lucide-react';
 import Sidebar from "./Sidebar";
 
 const Liquidacion = () => {
@@ -35,7 +36,7 @@ const Liquidacion = () => {
 
     // --- FILTRADO POR MES Y AÑO ---
     const leadsDelPeriodo = leads.filter(lead => {
-        if (!lead.fechaInstalacion) return false; // Si no hay fecha, no entra en el reporte mensual
+        if (!lead.fechaInstalacion) return false;
 
         const fecha = new Date(lead.fechaInstalacion);
         return fecha.getMonth() === mesSeleccionado &&
@@ -55,6 +56,36 @@ const Liquidacion = () => {
         }, 0);
     };
 
+    // --- FUNCIÓN PARA EXPORTAR A EXCEL ---
+    const exportarExcel = () => {
+        const datosReporte = asesores.map(as => {
+            const instaladas = leadsDelPeriodo.filter(l => l.asesor?.id === as.id && l.estado === 'INSTALADA');
+            const comision = calcularComisionAsesor(as.id);
+
+            if (instaladas.length === 0) return null;
+
+            return {
+                "ASESOR": as.nombre.toUpperCase(),
+                "CARGO": as.cargo,
+                "VENTAS DEL MES": instaladas.length,
+                "PLANES VENDIDOS": instaladas.map(l => l.plan).join(" | "),
+                "TOTAL COMISION": comision
+            };
+        }).filter(item => item !== null);
+
+        if (datosReporte.length === 0) {
+            alert("No hay ventas registradas en este periodo para exportar.");
+            return;
+        }
+
+        const hoja = XLSX.utils.json_to_sheet(datosReporte);
+        const libro = XLSX.utils.book_new();
+        XLSX.utils.book_append_sheet(libro, hoja, "Liquidacion");
+
+        // Descargar el archivo con el nombre del mes
+        XLSX.writeFile(libro, `Reporte_Pagos_${MESES[mesSeleccionado]}_${anioSeleccionado}.xlsx`);
+    };
+
     const getConteoPorEstado = (estado) => leadsDelPeriodo.filter(l => l.estado === estado).length;
 
     return (
@@ -63,7 +94,7 @@ const Liquidacion = () => {
             <main className="flex-1 ml-64 p-10">
                 <div className="max-w-7xl mx-auto">
 
-                    {/* HEADER CON SELECTOR DE MES */}
+                    {/* HEADER CON SELECTOR Y BOTONES */}
                     <div className="flex justify-between items-start mb-10">
                         <div>
                             <h1 className="text-4xl font-black text-slate-900 tracking-tight">Cierre de Caja</h1>
@@ -78,17 +109,26 @@ const Liquidacion = () => {
                             <select
                                 value={mesSeleccionado}
                                 onChange={(e) => setMesSeleccionado(parseInt(e.target.value))}
-                                className="bg-white border-2 border-slate-100 p-3 rounded-2xl font-bold text-slate-700 outline-none focus:border-orange-500"
+                                className="bg-white border-2 border-slate-100 p-3 rounded-2xl font-bold text-slate-700 outline-none focus:border-orange-500 cursor-pointer shadow-sm"
                             >
                                 {MESES.map((mes, index) => (
                                     <option key={mes} value={index}>{mes}</option>
                                 ))}
                             </select>
 
+                            {/* Botón Exportar */}
+                            <button
+                                onClick={exportarExcel}
+                                className="bg-slate-900 text-white px-6 py-4 rounded-2xl font-black flex items-center gap-2 hover:bg-green-600 transition-all shadow-lg active:scale-95"
+                            >
+                                <FileSpreadsheet size={20} /> EXPORTAR
+                            </button>
+
+                            {/* Card Total General */}
                             <div className="bg-green-500 text-white px-8 py-4 rounded-[24px] shadow-lg flex items-center gap-3">
                                 <Wallet size={24} />
                                 <div>
-                                    <p className="text-[10px] font-bold uppercase opacity-80">Total a Pagar Mes</p>
+                                    <p className="text-[10px] font-bold uppercase opacity-80 tracking-widest">Total Periodo</p>
                                     <p className="text-2xl font-black">
                                         ${asesores.reduce((acc, as) => acc + calcularComisionAsesor(as.id), 0).toLocaleString()}
                                     </p>
@@ -134,7 +174,7 @@ const Liquidacion = () => {
                                     <tr key={as.id} className="hover:bg-slate-50 transition-all">
                                         <td className="p-8">
                                             <div className="font-black text-slate-900 text-lg">{as.nombre}</div>
-                                            <div className="text-slate-400 text-xs font-bold uppercase">{as.cargo}</div>
+                                            <div className="text-slate-400 text-xs font-bold uppercase tracking-tight">{as.cargo}</div>
                                         </td>
                                         <td className="p-8 text-center font-black text-2xl text-slate-400">{instaladas.length}</td>
                                         <td className="p-8">
@@ -145,13 +185,20 @@ const Liquidacion = () => {
                                             </div>
                                         </td>
                                         <td className="p-8 text-right">
-                                            <div className="bg-green-50 text-green-700 px-6 py-3 rounded-2xl font-black text-xl inline-block">
+                                            <div className="bg-green-50 text-green-700 px-6 py-3 rounded-2xl font-black text-xl inline-block border border-green-100 shadow-sm">
                                                 $ {comision.toLocaleString()}
                                             </div>
                                         </td>
                                     </tr>
                                 );
                             })}
+                            {leadsDelPeriodo.length === 0 && (
+                                <tr>
+                                    <td colSpan="4" className="p-20 text-center">
+                                        <p className="text-slate-400 font-bold uppercase tracking-widest text-xs">No hay actividad registrada en este periodo</p>
+                                    </td>
+                                </tr>
+                            )}
                             </tbody>
                         </table>
                     </div>
