@@ -8,12 +8,13 @@ import com.godream.api.services.EmailService;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.http.ResponseEntity;
 import org.springframework.web.bind.annotation.*;
+
+import java.time.LocalDateTime;
 import java.util.List;
 import java.util.Map;
 
 @RestController
 @RequestMapping("/api/leads")
-// Mantenemos CrossOrigin por seguridad adicional, aunque ya tengas WebConfig
 @CrossOrigin(origins = "http://localhost:5173", allowedHeaders = "*", methods = {RequestMethod.GET, RequestMethod.POST, RequestMethod.PATCH, RequestMethod.DELETE, RequestMethod.OPTIONS})
 public class LeadController {
 
@@ -34,14 +35,11 @@ public class LeadController {
     @PostMapping
     public ResponseEntity<Lead> guardar(@RequestBody Lead lead) {
         try {
-            // 1. Valores por defecto
             if (lead.getEstado() == null) lead.setEstado("NUEVO");
             if (lead.getOrigen() == null) lead.setOrigen("Web");
 
-            // 2. Guardamos en la base de datos PRIMERO
             Lead nuevoLead = repository.save(lead);
 
-            // 3. Intento de envío de correo (No bloqueante)
             try {
                 if (emailService != null && nuevoLead.getEmail() != null) {
                     emailService.enviarConfirmacion(
@@ -53,23 +51,32 @@ public class LeadController {
                     System.out.println("✅ Correo enviado con éxito a: " + nuevoLead.getEmail());
                 }
             } catch (Exception e) {
-                // Si falla el correo, solo avisamos en consola, el Lead ya está a salvo en la DB
                 System.err.println("⚠️ El Lead se guardó, pero el correo falló: " + e.getMessage());
             }
 
             return ResponseEntity.ok(nuevoLead);
 
         } catch (Exception e) {
-            // Si el error ocurre AQUÍ, es un problema de la Base de Datos
             System.err.println("❌ Error crítico al guardar Lead: " + e.getMessage());
             return ResponseEntity.internalServerError().build();
         }
     }
 
+    // MÉTODO ACTUALIZADO: Maneja la fecha de instalación para el cierre de caja mensual
     @PatchMapping("/{id}/estado")
     public ResponseEntity<Lead> actualizarEstado(@PathVariable Long id, @RequestBody Map<String, String> body) {
         return repository.findById(id).map(lead -> {
-            lead.setEstado(body.get("estado"));
+            String nuevoEstado = body.get("estado");
+            lead.setEstado(nuevoEstado);
+
+            // Si el estado es INSTALADA, grabamos el momento exacto
+            if ("INSTALADA".equalsIgnoreCase(nuevoEstado)) {
+                lead.setFechaInstalacion(LocalDateTime.now());
+            } else {
+                // Si cambia a otro estado, eliminamos la fecha para que no sume en la liquidación mensual
+                lead.setFechaInstalacion(null);
+            }
+
             return ResponseEntity.ok(repository.save(lead));
         }).orElse(ResponseEntity.notFound().build());
     }

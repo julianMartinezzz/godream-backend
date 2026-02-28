@@ -15,8 +15,7 @@ const Admin = () => {
     const [guardandoNota, setGuardandoNota] = useState(false);
 
     const ESTADOS = [
-        { id: 'NUEVO', label: 'Nuevo', color: 'bg-blue-100 text-blue-700' },
-        { id: 'VALIDANDO', label: 'Validando', color: 'bg-purple-100 text-purple-700' },
+        { id: 'NUEVA', label: 'Nueva', color: 'bg-purple-100 text-purple-700' },
         { id: 'PENDIENTE_INSTALACION', label: 'Pendiente Inst.', color: 'bg-orange-100 text-orange-700' },
         { id: 'INSTALADA', label: 'Instalada ✅', color: 'bg-green-100 text-green-700' },
         { id: 'CANCELADA', label: 'Cancelada ❌', color: 'bg-red-100 text-red-700' }

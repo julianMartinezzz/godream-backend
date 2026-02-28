@@ -28,14 +28,16 @@ public class Lead {
     @Column(columnDefinition = "TEXT")
     private String notas;
 
-    // --- RELACIÓN CON ASESOR (OPCIONAL) ---
-    // many-to-one: muchos leads pueden pertenecer a un mismo asesor
     @ManyToOne(fetch = FetchType.EAGER)
     @JoinColumn(name = "asesor_id", nullable = true)
     private Asesor asesor;
 
     @Column(name = "fecha_creacion")
     private LocalDateTime fechaCreacion;
+
+    // NUEVO CAMPO PARA EL HISTORIAL MENSUAL
+    @Column(name = "fecha_instalacion")
+    private LocalDateTime fechaInstalacion;
 
     // --- CONSTRUCTORES ---
     public Lead() {}
@@ -81,4 +83,8 @@ public class Lead {
 
     public LocalDateTime getFechaCreacion() { return fechaCreacion; }
     public void setFechaCreacion(LocalDateTime fechaCreacion) { this.fechaCreacion = fechaCreacion; }
+
+    // Getter y Setter para el nuevo campo
+    public LocalDateTime getFechaInstalacion() { return fechaInstalacion; }
+    public void setFechaInstalacion(LocalDateTime fechaInstalacion) { this.fechaInstalacion = fechaInstalacion; }
 }
