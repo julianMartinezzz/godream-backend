@@ -6,6 +6,4 @@ import org.springframework.stereotype.Repository;
 
 @Repository
 public interface LeadRepository extends JpaRepository<Lead, Long> {
-    // Aquí podrías agregar métodos personalizados en el futuro, por ejemplo:
-    // List<Lead> findByEstado(String estado);
 }

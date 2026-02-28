@@ -2,7 +2,7 @@ package com.godream.api.controllers;
 
 import com.godream.api.models.Lead;
 import com.godream.api.repositories.LeadRepository;
-import com.godream.api.services.EmailService; // <--- Asegúrate de que este import esté
+import com.godream.api.services.EmailService;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.http.ResponseEntity;
 import org.springframework.web.bind.annotation.*;
@@ -11,14 +11,15 @@ import java.util.Map;
 
 @RestController
 @RequestMapping("/api/leads")
-@CrossOrigin(origins = "*", allowedHeaders = "*", methods = {RequestMethod.GET, RequestMethod.POST, RequestMethod.PATCH, RequestMethod.OPTIONS})
+// Agregamos DELETE a los métodos permitidos
+@CrossOrigin(origins = "*", allowedHeaders = "*", methods = {RequestMethod.GET, RequestMethod.POST, RequestMethod.PATCH, RequestMethod.DELETE, RequestMethod.OPTIONS})
 public class LeadController {
 
     @Autowired
     private LeadRepository repository;
 
     @Autowired
-    private EmailService emailService; // <--- 1. Inyectamos el servicio de correo
+    private EmailService emailService;
 
     @GetMapping
     public List<Lead> listarTodos() {
@@ -28,11 +29,8 @@ public class LeadController {
     @PostMapping
     public Lead guardar(@RequestBody Lead lead) {
         if (lead.getEstado() == null) lead.setEstado("NUEVO");
-
-        // 2. Guardamos el lead en la base de datos
         Lead nuevoLead = repository.save(lead);
 
-        // 3. Intentamos enviar el correo de confirmación
         try {
             emailService.enviarConfirmacion(
                     nuevoLead.getEmail(),
@@ -42,9 +40,7 @@ public class LeadController {
             );
             System.out.println("✅ Correo enviado con éxito a: " + nuevoLead.getEmail());
         } catch (Exception e) {
-            // Si el correo falla, imprimimos el error en la consola de IntelliJ pero el lead queda guardado
             System.err.println("❌ Error al enviar correo: " + e.getMessage());
-            e.printStackTrace();
         }
 
         return nuevoLead;
@@ -53,10 +49,26 @@ public class LeadController {
     @PatchMapping("/{id}/estado")
     public ResponseEntity<Lead> actualizarEstado(@PathVariable Long id, @RequestBody Map<String, String> body) {
         return repository.findById(id).map(lead -> {
-            String nuevoEstado = body.get("estado");
-            lead.setEstado(nuevoEstado);
-            repository.save(lead);
-            return ResponseEntity.ok(lead);
+            lead.setEstado(body.get("estado"));
+            return ResponseEntity.ok(repository.save(lead));
+        }).orElse(ResponseEntity.notFound().build());
+    }
+
+    // --- NUEVO: ACTUALIZAR SOLO NOTAS ---
+    @PatchMapping("/{id}/notas")
+    public ResponseEntity<Lead> actualizarNotas(@PathVariable Long id, @RequestBody Map<String, String> body) {
+        return repository.findById(id).map(lead -> {
+            lead.setNotas(body.get("notas"));
+            return ResponseEntity.ok(repository.save(lead));
+        }).orElse(ResponseEntity.notFound().build());
+    }
+
+    // --- NUEVO: ELIMINAR LEAD ---
+    @DeleteMapping("/{id}")
+    public ResponseEntity<Void> eliminarLead(@PathVariable Long id) {
+        return repository.findById(id).map(lead -> {
+            repository.delete(lead);
+            return ResponseEntity.ok().<Void>build();
         }).orElse(ResponseEntity.notFound().build());
     }
 }

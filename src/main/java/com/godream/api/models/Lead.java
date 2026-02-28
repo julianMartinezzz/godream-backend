@@ -21,53 +21,45 @@ public class Lead {
     private String telefono;
 
     private String plan;
-
-    // --- NUEVO CAMPO AGREGADO ---
     private String estrato;
-
-    private String estado = "Nuevo";
+    private String estado = "NUEVO";
     private String origen = "Web";
+
+    // --- NUEVO CAMPO PARA COMENTARIOS ---
+    @Column(columnDefinition = "TEXT")
+    private String notas;
 
     @Column(name = "fecha_creacion")
     private LocalDateTime fechaCreacion;
 
-    // 1. CONSTRUCTOR VACÍO
-    public Lead() {
-    }
+    public Lead() {}
 
     @PrePersist
     protected void onCreate() {
         this.fechaCreacion = LocalDateTime.now();
-        if (this.estado == null) this.estado = "Nuevo";
+        if (this.estado == null) this.estado = "NUEVO";
         if (this.origen == null) this.origen = "Web";
     }
 
-    // 2. GETTERS Y SETTERS
+    // GETTERS Y SETTERS
     public Long getId() { return id; }
     public void setId(Long id) { this.id = id; }
-
     public String getNombre() { return nombre; }
     public void setNombre(String nombre) { this.nombre = nombre; }
-
     public String getEmail() { return email; }
     public void setEmail(String email) { this.email = email; }
-
     public String getTelefono() { return telefono; }
     public void setTelefono(String telefono) { this.telefono = telefono; }
-
     public String getPlan() { return plan; }
     public void setPlan(String plan) { this.plan = plan; }
-
-    // --- GETTER Y SETTER PARA ESTRATO ---
     public String getEstrato() { return estrato; }
     public void setEstrato(String estrato) { this.estrato = estrato; }
-
     public String getEstado() { return estado; }
     public void setEstado(String estado) { this.estado = estado; }
-
     public String getOrigen() { return origen; }
     public void setOrigen(String origen) { this.origen = origen; }
-
+    public String getNotas() { return notas; }
+    public void setNotas(String notas) { this.notas = notas; }
     public LocalDateTime getFechaCreacion() { return fechaCreacion; }
     public void setFechaCreacion(LocalDateTime fechaCreacion) { this.fechaCreacion = fechaCreacion; }
 }
