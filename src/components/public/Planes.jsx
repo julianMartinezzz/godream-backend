@@ -1,5 +1,6 @@
 import React, { useState } from 'react';
 
+
 const Planes = ({ alSeleccionarPlan }) => {
     // Estado para controlar el grupo de estratos (true = 1 a 3, false = 4 a 6)
     const [esEstratoBajo, setEsEstratoBajo] = useState(true);
@@ -22,6 +23,8 @@ const Planes = ({ alSeleccionarPlan }) => {
     ];
 
     return (
+
+
         <div className="space-y-12">
             {/* Selector de Estrato */}
             <div className="flex justify-center items-center gap-4 bg-orange-50 p-2 rounded-2xl w-fit mx-auto border border-orange-100 shadow-sm">
@@ -38,6 +41,8 @@ const Planes = ({ alSeleccionarPlan }) => {
                     Estratos 4 - 6
                 </button>
             </div>
+
+
 
             {/* Tarjetas de Planes */}
             <div className="grid md:grid-cols-2 gap-8 max-w-4xl mx-auto px-4">

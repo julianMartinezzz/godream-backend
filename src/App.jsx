@@ -13,10 +13,11 @@ import Planes from './components/public/Planes.jsx';
 import Contacto from './components/public/Contacto.jsx';
 import Footer from './components/public/Footer.jsx';
 
-// Vistas de Administración
+// Vistas de Administración (Todas apuntando a ./components/admin/)
 import Admin from './pages/Admin.jsx';
 import Equipo from './components/admin/Equipo.jsx';
-import Liquidacion from './components/admin/Liquidacion.jsx'; // <--- IMPORTACIÓN NUEVA
+import Liquidacion from './components/admin/Liquidacion.jsx';
+import GestionLeads from './components/admin/GestionLeads.jsx'; // <--- CORREGIDO
 
 function App() {
     const [planSeleccionado, setPlanSeleccionado] = useState("");
@@ -28,7 +29,7 @@ function App() {
     return (
         <div className="min-h-screen bg-[#F8FAFC] font-sans selection:bg-orange-100 overflow-x-hidden">
             <Routes>
-                {/* RUTA PRINCIPAL (LANDING PAGE) */}
+                {/* RUTA PRINCIPAL */}
                 <Route path="/" element={
                     <>
                         <Navbar />
@@ -46,19 +47,19 @@ function App() {
                     </>
                 } />
 
-                {/* RUTAS DE ADMINISTRACIÓN (PLANAS) */}
+                {/* RUTAS DE ADMINISTRACIÓN */}
                 <Route path="/admin" element={<Admin />} />
                 <Route path="/admin/equipo" element={<Equipo />} />
-
-                {/* NUEVA RUTA DE LIQUIDACIÓN Y PAGOS */}
                 <Route path="/admin/liquidacion" element={<Liquidacion />} />
+
+                {/* ESTA ES LA RUTA QUE FALTABA */}
+                <Route path="/admin/leads" element={<GestionLeads />} />
 
                 {/* MANEJO DE ERRORES 404 */}
                 <Route path="*" element={
                     <div className="flex flex-col items-center justify-center min-h-screen">
                         <h1 className="text-4xl font-black text-slate-900">404 - No encontrado</h1>
-                        <p className="text-slate-500 mt-2 font-medium">La página que buscas no existe o ha sido movida.</p>
-                        <a href="/" className="bg-orange-500 text-white px-6 py-3 rounded-2xl font-black mt-6 hover:bg-slate-900 transition-all">
+                        <a href="/" className="bg-orange-500 text-white px-6 py-3 rounded-2xl font-black mt-6">
                             VOLVER AL INICIO
                         </a>
                     </div>
