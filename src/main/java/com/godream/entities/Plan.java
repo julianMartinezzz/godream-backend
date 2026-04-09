@@ -27,7 +27,7 @@ public class Plan extends PanacheEntityBase {
     public Double precio;
 
     @NotBlank(message = "Debe especificar el rango de estrato (ej: 1-3)")
-    @Column(name = "estrato_rango", length = 10)
+    @Column(name = "estratoRango")
     public String estratoRango;
 
     @Column(columnDefinition = "TEXT")
