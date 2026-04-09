@@ -1,0 +1,2 @@
+INSERT INTO planes (id, nombre, velocidad, precio, estratoRango, beneficios) VALUES (next_val('planes_SEQ'), 'Plan Esencial', 500, 59900.0, '1-3', 'Fibra Óptica');
+INSERT INTO planes (id, nombre, velocidad, precio, estratoRango, beneficios) VALUES (next_val('planes_SEQ'), 'Plan Pro', 1000, 79900.0, '1-3', 'WiFi 6 Plus');
