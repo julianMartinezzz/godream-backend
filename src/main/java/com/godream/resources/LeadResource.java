@@ -6,6 +6,8 @@ import jakarta.ws.rs.*;
 import jakarta.ws.rs.core.MediaType;
 import jakarta.ws.rs.core.Response;
 
+import java.util.List;
+
 @Path("/api/leads")
 @Produces(MediaType.APPLICATION_JSON)
 @Consumes(MediaType.APPLICATION_JSON)
@@ -20,5 +22,10 @@ public class LeadResource {
         }
         lead.persist();
         return Response.status(Response.Status.CREATED).entity(lead).build();
+    }
+
+    @GET
+    public List<Lead> listarLeads() {
+        return Lead.listAll();
     }
 }
