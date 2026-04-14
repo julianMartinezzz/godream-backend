@@ -2,23 +2,23 @@
 FROM maven:3.9.6-eclipse-temurin-21 AS build
 WORKDIR /home/app
 
-# Copiamos todo el contenido del repositorio
+# Copiamos todo
 COPY . .
 
 USER root
 
-# Corregimos la ejecución: Buscamos el POM y entramos a su carpeta
-RUN POM_PATH=$(find . -name "pom.xml" | head -n 1) && \
-    cd $(dirname $POM_PATH) && \
+# 1. Buscamos el pom.xml (sin importar mayúsculas) y movemos todo a la raíz de /home/app
+# 2. Esto soluciona el problema de las subcarpetas de una vez por todas.
+RUN ACTUAL_PATH=$(find . -iname "pom.xml" -exec dirname {} \; | head -n 1) && \
+    cp -r $ACTUAL_PATH/. . || true && \
     mvn clean package -DskipTests
 
 # ETAPA 2: Imagen de ejecución
 FROM registry.access.redhat.com/ubi9/openjdk-21-runtime:1.24
 ENV LANGUAGE='en_US:en'
 
-# Copia recursiva buscando los archivos generados por Quarkus
-RUN mkdir -p /deployments
-COPY --from=build /home/app/**/target/quarkus-app/ /deployments/
+# Copiamos los artefactos de Quarkus
+COPY --from=build /home/app/target/quarkus-app/ /deployments/
 
 EXPOSE 8080
 USER 185
