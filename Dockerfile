@@ -1,15 +1,17 @@
-# ETAPA 1: Compilación (Maven)
+# ETAPA 1: Compilación
 FROM maven:3.9.6-eclipse-temurin-21 AS build
-COPY src /home/app/src
-COPY pom.xml /home/app
+# Copiamos todo el contenido de la raíz al contenedor
+COPY . /home/app
 USER root
+# Ejecutamos la compilación desde la carpeta donde está el pom.xml
 RUN mvn -f /home/app/pom.xml clean package -DskipTests
 
-# ETAPA 2: Imagen de ejecución (Runtime)
+# ETAPA 2: Imagen de ejecución
 FROM registry.access.redhat.com/ubi9/openjdk-21-runtime:1.24
 
 ENV LANGUAGE='en_US:en'
 
+# Copiamos los resultados desde la etapa de build
 COPY --from=build --chown=185 /home/app/target/quarkus-app/lib/ /deployments/lib/
 COPY --from=build --chown=185 /home/app/target/quarkus-app/*.jar /deployments/
 COPY --from=build --chown=185 /home/app/target/quarkus-app/app/ /deployments/app/
