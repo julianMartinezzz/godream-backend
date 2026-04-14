@@ -1,17 +1,23 @@
 # ETAPA 1: Compilación
 FROM maven:3.9.6-eclipse-temurin-21 AS build
-# Copiamos todo el contenido de la raíz al contenedor
-COPY . /home/app
+
+# Creamos el directorio y nos movemos a él
+WORKDIR /home/app
+
+# Copiamos TODO lo que hay en la raíz del proyecto al contenedor
+COPY . .
+
 USER root
-# Ejecutamos la compilación desde la carpeta donde está el pom.xml
-RUN mvn -f /home/app/pom.xml clean package -DskipTests
+
+# Ejecutamos Maven (como ya estamos en /home/app, no necesitamos el -f)
+RUN mvn clean package -DskipTests
 
 # ETAPA 2: Imagen de ejecución
 FROM registry.access.redhat.com/ubi9/openjdk-21-runtime:1.24
 
 ENV LANGUAGE='en_US:en'
 
-# Copiamos los resultados desde la etapa de build
+# Copiamos desde la etapa build usando rutas relativas al WORKDIR anterior
 COPY --from=build --chown=185 /home/app/target/quarkus-app/lib/ /deployments/lib/
 COPY --from=build --chown=185 /home/app/target/quarkus-app/*.jar /deployments/
 COPY --from=build --chown=185 /home/app/target/quarkus-app/app/ /deployments/app/
